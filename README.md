@@ -180,3 +180,33 @@ wait  # 等所有剩余任务完成
 ```
 
 
+## 安装phantompeakqualtools
+[phantompeakqualtools](https://github.com/kundajelab/phantompeakqualtools)
+
+```bash
+git clone https://github.com/kundajelab/phantompeakqualtools
+cd phantompeakqualtools
+R
+```
+```r
+install.packages("snow", repos="http://cran.us.r-project.org")
+install.packages("snowfall", repos="http://cran.us.r-project.org")
+install.packages("bitops", repos="http://cran.us.r-project.org")
+install.packages("caTools", repos="http://cran.us.r-project.org")
+install.packages("BiocManager")
+BiocManager::install("Rsamtools")
+devtools::install_github('hms-dbmi/spp', build_vignettes = FALSE)
+
+library(snow)
+library(snowfall)
+library(bitops)
+library(caTools)
+library(Rsamtools)
+library(spp)
+q()
+```
+
+
+
+
+
