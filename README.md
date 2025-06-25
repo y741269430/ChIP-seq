@@ -179,6 +179,50 @@ wait  # 等所有剩余任务完成
 
 ```
 
+## 计算单端
+Trim R1 fastq to 50bp
+```bash
+python trimfastq.py $FASTQ_R1 50 | gzip -nc >  trim_50/${i}_forward_paired.fq.gz
+```
+```bash
+#!/bin/bash
+
+## Bowtie2 index for mm39
+mm39="/home/jjyang/downloads/genome/mm39_GRCm39/bowtie2_idx/mm39"
+
+## 创建输出目录
+mkdir -p bam logs qc
+
+cat filenames | while read i; do
+(
+  echo "Processing $i..."
+
+  fastq_file=trim_50/${i}_forward_paired.fq.gz
+  bam_file=./bam/${i}_fastq_r1.bam
+  filt_bam_file=./bam/${i}_fastq_r1_FILT.bam
+  log_file=./logs/${i}_fastq_r1.log
+
+  # 1. 比对 + BAM 排序
+  bowtie2 --mm -x $mm39 -p 4 -U $fastq_file 2> $log_file | \
+    samtools view -Su - | samtools sort -o $bam_file -
+
+  # 2. Filter BAM
+  samtools view -F 1804 -q 30 -b $bam_file -o $filt_bam_file
+
+  echo "Finished $i"
+) &
+done
+
+wait
+```
+
+
+
+
+
+
+
+
 
 ## 安装phantompeakqualtools
 [phantompeakqualtools](https://github.com/kundajelab/phantompeakqualtools)
