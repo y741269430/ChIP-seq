@@ -40,18 +40,48 @@ done
 vim ch1_bw2.sh
 
 #!/bin/bash
-## Alignment to mm39 ##
 
-mm39="/home/jjyang/downloads/genome/mm39_GRCm39/bowtie2_idx/mm39"
+# Bowtie2 index path
+bwt2_idx="/home/jjyang/downloads/genome/mm39_GRCm39/bowtie2_idx/mm39"
+nth_bwt2=4  # bowtie2线程数
 
-cat filenames | while read i; 
-do
-nohup bowtie2 -p 4 --very-sensitive -X 2000 \
--x ${mm39} \
--1 ./trim/${i}*_forward_paired.fq.gz \
--2 ./trim/${i}*_reverse_paired.fq.gz \
--S ./bam/${i}.sam 2> ./bam/${i}_map.txt & 
-done
+# 最大并发任务数
+MAX_JOBS=4
+JOBS=0
+
+# 创建输出目录
+mkdir -p bam logs qc
+
+# 主循环
+while read i; do
+(
+
+  fastq1=trim/${i}_forward_paired.fq.gz
+  fastq2=trim/${i}_reverse_paired.fq.gz
+  bam_file=./bam/${i}.bam
+  log_file=./logs/${i}.align.log
+  flagstat_qc=./logs/${i}.flagstat.qc
+
+  # Step 1: 比对 + 转 BAM + 排序
+  bowtie2 -X2000 --mm --threads $nth_bwt2 -x $bwt2_idx \
+    -1 $fastq1 -2 $fastq2 2> $log_file | \
+    samtools view -Su - | samtools sort -o $bam_file -
+
+  # Step 2: flagstat 样本质控
+  samtools sort -n --threads $nth_bwt2 $bam_file -O SAM | \
+    SAMstats --sorted_sam_file - --outf $flagstat_qc
+
+) &
+
+((JOBS++))
+if [[ "$JOBS" -ge "$MAX_JOBS" ]]; then
+  wait -n         # 等待任一任务结束
+  ((JOBS--))      # 减去已结束的任务
+fi
+
+done < filenames
+
+wait
 ```
 
 ## 3. Sam转bam，然后处理bam文件
