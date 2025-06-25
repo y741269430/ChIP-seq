@@ -49,9 +49,6 @@ nth_bwt2=4  # bowtie2线程数
 MAX_JOBS=4
 JOBS=0
 
-# 创建输出目录
-mkdir -p bam logs qc
-
 # 主循环
 while read i; do
 (
@@ -217,15 +214,17 @@ python trimfastq.py $FASTQ_R1 50 | gzip -nc >  trim_50/${i}_forward_paired.fq.gz
 ```bash
 #!/bin/bash
 
-## Bowtie2 index for mm39
-mm39="/home/jjyang/downloads/genome/mm39_GRCm39/bowtie2_idx/mm39"
+# Bowtie2 index path
+bwt2_idx="/home/jjyang/downloads/genome/mm39_GRCm39/bowtie2_idx/mm39"
+nth_bwt2=4  # bowtie2线程数
 
-## 创建输出目录
-mkdir -p bam logs qc
+# 最大并发任务数
+MAX_JOBS=4
+JOBS=0
 
-cat filenames | while read i; do
+# 主循环
+while read i; do
 (
-  echo "Processing $i..."
 
   fastq_file=trim_50/${i}_forward_paired.fq.gz
   bam_file=./bam/${i}_fastq_r1.bam
@@ -233,15 +232,21 @@ cat filenames | while read i; do
   log_file=./logs/${i}_fastq_r1.log
 
   # 1. 比对 + BAM 排序
-  bowtie2 --mm -x $mm39 -p 4 -U $fastq_file 2> $log_file | \
+  bowtie2 --mm -x $mm39 --threads $nth_bwt2 -U $fastq_file 2> $log_file | \
     samtools view -Su - | samtools sort -o $bam_file -
 
   # 2. Filter BAM
-  samtools view -F 1804 -q 30 -b $bam_file -o $filt_bam_file
+  samtools view -F 1804 --threads $nth_bwt2 -q 30 -b $bam_file -o $filt_bam_file
 
-  echo "Finished $i"
 ) &
-done
+
+((JOBS++))
+if [[ "$JOBS" -ge "$MAX_JOBS" ]]; then
+  wait -n         # 等待任一任务结束
+  ((JOBS--))      # 减去已结束的任务
+fi
+
+done < filenames
 
 wait
 ```
