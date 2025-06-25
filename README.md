@@ -60,8 +60,9 @@ vim ch2_sam2bam.sh
 
 #!/bin/bash
 
-# 线程数设定
-th=10
+th=10  # 线程数设定
+MAX_JOBS=4  # 最多允许同时运行的样本数
+JOBS=0
 
 # 读取文件名列表（每一行一个样本名）
 while read i; do
@@ -91,7 +92,16 @@ while read i; do
     rm ./bam/${i}_sorted_name.bam
   ) > ./bam/log_${i}.log 2>&1 &
 
+((JOBS++))
+if [[ "$JOBS" -ge "$MAX_JOBS" ]]; then
+  wait -n  # 等其中一个任务完成
+  ((JOBS--))
+fi
+
 done < filenames
+
+wait  # 等所有剩余任务完成
+
 ```
 
 ## 4.标记重复片段   
