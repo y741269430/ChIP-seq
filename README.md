@@ -3,9 +3,10 @@
 ## 目录 ####
 - 0.配置环境
 - 1.利用trimmomatic去除接头(Illumina)
-- 2.比对到mm39
-- 3.Sam转bam，然后处理bam文件
-- 4.去重复
+- 2.Read alignment 比对到mm39
+- 3.Post-alignment filtering
+- 4.Convert PE BAM to tagAlign (BED 3+3 format)
+- 5.Generate self-pseudoreplicates for each replicate (PE datasets)
 
 ---
 ## 0.配置环境
@@ -35,7 +36,7 @@ ILLUMINACLIP:TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLE
 done
 ```
 
-## 2.比对到mm39 
+## 2.Read alignment 比对到mm39
 ```bash
 vim ch1_bw2.sh
 
@@ -81,7 +82,7 @@ done < filenames
 wait
 ```
 
-## 3. Sam转bam，然后去重复
+## 3. Post-alignment filtering
 ```bash
 vim ch2_sam2bam_rmdup.sh
 
@@ -145,7 +146,7 @@ wait
 
 ```
 
-## 4. bam2bed
+## 4. Convert PE BAM to tagAlign (BED 3+3 format)
 ```bash
 vim ch3_bam2bed.sh
 
@@ -159,7 +160,7 @@ zcat ./bed/${i}_FINAL_nmsrt.bedpe.gz | awk 'BEGIN{OFS="\t"}{printf "%s\t%s\t%s\t
 done
 ```
 
-##
+## 5.Generate self-pseudoreplicates for each replicate (PE datasets)
 ```bash
 #!/bin/bash
 MAX_JOBS=4
@@ -168,30 +169,30 @@ JOBS=0
 # 主循环
 while read i; do
   (
-# Step 1: Create fake BEDPE from tagAlign
-zcat ./bed/${i}_FINAL_TA_FILE.bed | sed 'N;s/\n/\t/' > ./bed/${i}_temp.bedpe
+  # Step 1: Create fake BEDPE from tagAlign
+  zcat ./bed/${i}_FINAL_TA_FILE.bed | sed 'N;s/\n/\t/' > ./bed/${i}_temp.bedpe
 
-# Step 2: Count read pairs
-nlines=$(wc -l < ./bed/${i}_temp.bedpe)
-nlines=$(( (nlines + 1) / 2 ))
+  # Step 2: Count read pairs
+  nlines=$(wc -l < ./bed/${i}_temp.bedpe)
+  nlines=$(( (nlines + 1) / 2 ))
 
-# Step 3: Shuffle and split
-shuf --random-source=<(openssl enc -aes-256-ctr -pass pass:$(zcat ./bed/${i}_FINAL_TA_FILE.bed | wc -c) -nosalt </dev/zero 2>/dev/null) ./bed/${i}_temp.bedpe \
+  # Step 3: Shuffle and split
+  shuf --random-source=<(openssl enc -aes-256-ctr -pass pass:$(zcat ./bed/${i}_FINAL_TA_FILE.bed | wc -c) -nosalt </dev/zero 2>/dev/null) ./bed/${i}_temp.bedpe \
   | split -d -l ${nlines} - ./bed/${i}.filt.nodup
 
-# Step 4: Convert to tagAlign format
-awk 'BEGIN{OFS="\t"}{
-  printf "%s\t%s\t%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\t%s\t%s\n",
-  $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
-}' ./bed/${i}.filt.nodup00 | gzip -nc > ./bed/${i}.filt.PE2SE.pr1.tagAlign.gz
+  # Step 4: Convert to tagAlign format
+  awk 'BEGIN{OFS="\t"}{
+    printf "%s\t%s\t%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\t%s\t%s\n",
+    $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+  }' ./bed/${i}.filt.nodup00 | gzip -nc > ./bed/${i}.filt.PE2SE.pr1.tagAlign.gz
 
-awk 'BEGIN{OFS="\t"}{
-  printf "%s\t%s\t%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\t%s\t%s\n",
-  $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
-}' ./bed/${i}.filt.nodup01 | gzip -nc > ./bed/${i}.filt.PE2SE.pr2.tagAlign.gz
+  awk 'BEGIN{OFS="\t"}{
+    printf "%s\t%s\t%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\t%s\t%s\n",
+    $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+  }' ./bed/${i}.filt.nodup01 | gzip -nc > ./bed/${i}.filt.PE2SE.pr2.tagAlign.gz
 
-rm -f ./bed/${i}_temp.bedpe ./bed/${i}.filt.nodup00 ./bed/${i}.filt.nodup01
-) &
+  rm -f ./bed/${i}_temp.bedpe ./bed/${i}.filt.nodup00 ./bed/${i}.filt.nodup01
+  ) &
 
   ((JOBS++))
   if [[ "$JOBS" -ge "$MAX_JOBS" ]]; then
