@@ -159,6 +159,52 @@ zcat ./bed/${i}_FINAL_nmsrt.bedpe.gz | awk 'BEGIN{OFS="\t"}{printf "%s\t%s\t%s\t
 done
 ```
 
+##
+```bash
+#!/bin/bash
+MAX_JOBS=4
+JOBS=0
+
+# 主循环
+while read i; do
+  (
+# Step 1: Create fake BEDPE from tagAlign
+zcat ./bed/${i}_FINAL_TA_FILE.bed | sed 'N;s/\n/\t/' > ./bed/${i}_temp.bedpe
+
+# Step 2: Count read pairs
+nlines=$(wc -l < ./bed/${i}_temp.bedpe)
+nlines=$(( (nlines + 1) / 2 ))
+
+# Step 3: Shuffle and split
+shuf --random-source=<(openssl enc -aes-256-ctr -pass pass:$(zcat ./bed/${i}_FINAL_TA_FILE.bed | wc -c) -nosalt </dev/zero 2>/dev/null) ./bed/${i}_temp.bedpe \
+  | split -d -l ${nlines} - ./bed/${i}.filt.nodup
+
+# Step 4: Convert to tagAlign format
+awk 'BEGIN{OFS="\t"}{
+  printf "%s\t%s\t%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\t%s\t%s\n",
+  $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+}' ./bed/${i}.filt.nodup00 | gzip -nc > ./bed/${i}.filt.PE2SE.pr1.tagAlign.gz
+
+awk 'BEGIN{OFS="\t"}{
+  printf "%s\t%s\t%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\t%s\t%s\n",
+  $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+}' ./bed/${i}.filt.nodup01 | gzip -nc > ./bed/${i}.filt.PE2SE.pr2.tagAlign.gz
+
+rm -f ./bed/${i}_temp.bedpe ./bed/${i}.filt.nodup00 ./bed/${i}.filt.nodup01
+) &
+
+  ((JOBS++))
+  if [[ "$JOBS" -ge "$MAX_JOBS" ]]; then
+    wait -n
+    ((JOBS--))
+  fi
+done < filenames
+
+wait
+```
+
+
+
 ## 计算单端
 Trim R1 fastq to 50bp
 ```bash
