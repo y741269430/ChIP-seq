@@ -145,6 +145,20 @@ wait
 
 ```
 
+## 4. bam2bed
+```bash
+vim ch3_bam2bed.sh
+
+#!/bin/bash
+
+cat filenames | while read i; 
+do
+nohup bedtools bamtobed -bedpe -mate1 -i ./bam/${i}_FINAL_nmsrt.bam | gzip -nc > ./bed/${i}_FINAL_nmsrt.bedpe.gz && \
+zcat ./bed/${i}_FINAL_nmsrt.bedpe.gz | awk 'BEGIN{OFS="\t"}{printf "%s\t%s\t%s\tN\t1000\t%s\n%s\t%s\t%s\tN\t1000\t%s\n",$1,$2,$3,$9,$4,$5,$6,$10}' | gzip -nc > ./bed/${i}_FINAL_TA_FILE.bed &
+
+done
+```
+
 ## 计算单端
 Trim R1 fastq to 50bp
 ```bash
