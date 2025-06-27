@@ -23,7 +23,8 @@ mamba activate atac
 ## 1.利用trimmomatic去除接头(Illumina)  
 ```bash
 vim pre_trim.sh
-
+```
+```bash
 #!/bin/bash
 ## trimmomatic ##
 
@@ -47,7 +48,8 @@ bash pre_trim.sh
 ## 2.Read alignment 双端比对到mm39
 ```bash
 vim ch1_bw2.sh
-
+```
+```bash
 #!/bin/bash
 
 # Bowtie2 index path
@@ -104,7 +106,8 @@ awk -F'[:%]' 'BEGIN{print "Sample,Alignment Rate (%)"} {gsub(/\.align\.log/, "",
 ## 3. Post-alignment filtering
 ```bash
 vim ch2_sam2bam_rmdup.sh
-
+```
+```bash
 #!/bin/bash
 nth=4  # 线程数
 MAX_JOBS=4
@@ -184,7 +187,8 @@ nohup bash ch2_sam2bam_rmdup.sh
 ## 4. Convert PE BAM to tagAlign (BED 3+3 format)
 ```bash
 vim ch3_bam2bed.sh
-
+```
+```bash
 #!/bin/bash
 
 cat filenames | while read i; 
@@ -211,7 +215,8 @@ bash ch3_bam2bed.sh
 
 ```bash
 vim ch_pse.sh
-
+```
+```bash
 #!/bin/bash
 MAX_JOBS=4
 JOBS=0
