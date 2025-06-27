@@ -5,8 +5,9 @@
 - 1.利用trimmomatic去除接头(Illumina)
 - 2.Read alignment 比对到mm39
 - 3.Post-alignment filtering
-- 4.Convert PE BAM to tagAlign (BED 3+3 format)
-- 5.Generate self-pseudoreplicates for each replicate (PE datasets)
+- 4.MACS3 call peak
+- 5.Convert PE BAM to tagAlign (BED 3+3 format)
+
 
 参考：    
 [Encode上的教程](https://docs.google.com/document/d/1lG_Rd7fnYgRpSIqrIfuVlAz2dW1VaSQThzk836Db99c/edit?tab=t.0#heading=h.9ecc41kilcvq)    
