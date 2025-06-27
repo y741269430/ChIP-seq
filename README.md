@@ -8,6 +8,11 @@
 - 4.Convert PE BAM to tagAlign (BED 3+3 format)
 - 5.Generate self-pseudoreplicates for each replicate (PE datasets)
 
+参考：    
+[Encode上的教程](https://docs.google.com/document/d/1lG_Rd7fnYgRpSIqrIfuVlAz2dW1VaSQThzk836Db99c/edit?tab=t.0#heading=h.9ecc41kilcvq)    
+[Encode Github](https://github.com/ENCODE-DCC/chip-seq-pipeline2/tree/master?tab=readme-ov-file)
+[MACS3](https://macs3-project.github.io/MACS/)   
+
 ---
 ## 0.配置环境
 跟atac的一致
@@ -36,7 +41,7 @@ ILLUMINACLIP:TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLE
 done
 ```
 
-## 2.Read alignment 比对到mm39
+## 2.Read alignment 双端比对到mm39
 ```bash
 vim ch1_bw2.sh
 
@@ -44,7 +49,7 @@ vim ch1_bw2.sh
 
 # Bowtie2 index path
 bwt2_idx="/home/jjyang/downloads/genome/mm39_GRCm39/bowtie2_idx/mm39"
-nth_bwt2=4  # bowtie2线程数
+nth_bwt2=8  # bowtie2线程数
 
 # 最大并发任务数
 MAX_JOBS=4
@@ -53,9 +58,10 @@ JOBS=0
 # 主循环
 while read i; do
 (
-
+  #input
   fastq1=trim/${i}_forward_paired.fq.gz
   fastq2=trim/${i}_reverse_paired.fq.gz
+  #output
   bam_file=./bam/${i}.bam
   log_file=./logs/${i}.align.log
   flagstat_qc=./logs/${i}.flagstat.qc
@@ -81,6 +87,12 @@ done < filenames
 
 wait
 ```
+导出比对率   
+```bash
+cd logs
+grep 'overall alignment rate' *.align.log | \
+awk -F'[:%]' 'BEGIN{print "Sample,Alignment Rate (%)"} {gsub(/\.align\.log/, "", $1); printf "%s,%s\n", $1, $2}' > ../alignment_rates.csv
+```
 
 ## 3. Post-alignment filtering
 ```bash
@@ -94,44 +106,57 @@ JOBS=0
 # 主循环
 while read i; do
   (
+    #input
+    bam_file=./bam/${i}.bam
+    #output
+    bam_FILT=./bam/${i}_FILT.bam
+    bam_dupmark=./bam/${i}_dupmark.bam
+    bam_FINAL=./bam/${i}_FINAL.bam
+    bam_FINAL_nmsrt=./bam/${i}_FINAL_nmsrt.bam
+    bam_srt_tmp=./bam/${i}_FILT.srt.tmp.bam
+    #logs
+    log_file=./logs/${i}.dup.qc
+    flagstat_file=./logs/${i}_FINAL.flagstat.qc
+    pbc_file=./logs/${i}_FILT.pbc.qc
+
     # Step 1: 过滤、fixmate、过滤、排序
-    samtools view --threads $nth -F 1804 -f 2 -q 30 -u ./bam/${i}.bam | \
+    samtools view --threads $nth -F 1804 -f 2 -q 30 -u $bam_file | \
     samtools sort --threads $nth -n - | \
     samtools fixmate -r - - | \
     samtools view --threads $nth -F 1804 -f 2 -u - | \
-    samtools sort --threads $nth -o ./bam/${i}_FILT.bam -
+    samtools sort --threads $nth -o $bam_FILT -
 
     # Step 2: 标记重复
     picard MarkDuplicates \
-      INPUT=./bam/${i}_FILT.bam \
-      OUTPUT=./bam/${i}_dupmark.bam \
-      METRICS_FILE=./logs/${i}.dup.qc \
+      INPUT=$bam_FILT \
+      OUTPUT=$bam_dupmark \
+      METRICS_FILE=$log_file \
       VALIDATION_STRINGENCY=LENIENT \
       ASSUME_SORTED=true \
       REMOVE_DUPLICATES=false
 
-    mv ./bam/${i}_dupmark.bam ./bam/${i}_FILT.bam
+    mv $bam_dupmark $bam_FILT
 
     # Step 3: 最终筛选、排序、索引
-    samtools view --threads $nth -F 1804 -f 2 -b ./bam/${i}_FILT.bam -o ./bam/${i}_FINAL.bam
-    samtools sort --threads $nth -n ./bam/${i}_FINAL.bam -o ./bam/${i}_FINAL_nmsrt.bam
-    samtools index ./bam/${i}_FINAL.bam
+    samtools view --threads $nth -F 1804 -f 2 -b $bam_FILT -o $bam_FINAL
+    samtools sort --threads $nth -n $bam_FINAL -o $bam_FINAL_nmsrt
+    samtools index $bam_FINAL
 
     # Step 4: 统计信息
-    samtools sort --threads $nth -n ./bam/${i}_FINAL.bam -O SAM | \
-    SAMstats --sorted_sam_file - --outf ./logs/${i}_FINAL.flagstat.qc
+    samtools sort --threads $nth -n $bam_FINAL -O SAM | \
+    SAMstats --sorted_sam_file - --outf $flagstat_file
 
     # Step 5: 计算库复杂度（PBC 指标）
-    samtools sort --threads $nth -n ./bam/${i}_FILT.bam -o ./bam/${i}_FILT.srt.tmp.bam
+    samtools sort --threads $nth -n $bam_FILT -o $bam_srt_tmp
 
-    bedtools bamtobed -bedpe -i ./bam/${i}_FILT.srt.tmp.bam | \
+    bedtools bamtobed -bedpe -i $bam_srt_tmp | \
     awk 'BEGIN{OFS="\t"}{print $1,$2,$4,$6,$9,$10}' | \
     grep -v 'chrM' | sort | uniq -c | \
     awk 'BEGIN{mt=0;m0=0;m1=0;m2=0} ($1==1){m1=m1+1} ($1==2){m2=m2+1} {m0=m0+1} {mt=mt+$1} END{printf "%d\t%d\t%d\t%d\t%f\t%f\t%f\n",mt,m0,m1,m2,m0/mt,m1/m0,m1/m2}' \
-    > ./logs/${i}_FILT.pbc.qc
-
-    rm ./bam/${i}_FILT.srt.tmp.bam
-    rm ./bam/${i}_FILT.bam
+    > $pbc_file
+    
+    rm $bam_srt_tmp
+    rm $bam_FILT
 
   ) &
 
@@ -154,14 +179,24 @@ vim ch3_bam2bed.sh
 
 cat filenames | while read i; 
 do
-nohup bedtools bamtobed -bedpe -mate1 -i ./bam/${i}_FINAL_nmsrt.bam | gzip -nc > ./bed/${i}_FINAL_nmsrt.bedpe.gz && \
-zcat ./bed/${i}_FINAL_nmsrt.bedpe.gz | awk 'BEGIN{OFS="\t"}{printf "%s\t%s\t%s\tN\t1000\t%s\n%s\t%s\t%s\tN\t1000\t%s\n",$1,$2,$3,$9,$4,$5,$6,$10}' | gzip -nc > ./bed/${i}_FINAL_TA_FILE.bed &
+    #input
+    input_bam=./bam/${i}_FINAL_nmsrt.bam
+    #output
+    output_bedpe_gz=./bed/${i}_FINAL_nmsrt.bedpe.gz
+    output_ta_file=./bed/${i}_FINAL_TA_FILE.bed
 
+    nohup bedtools bamtobed -bedpe -mate1 -i $input_bam | gzip -nc > $output_bedpe_gz && \
+    zcat $output_bedpe_gz | awk 'BEGIN{OFS="\t"}{printf "%s\t%s\t%s\tN\t1000\t%s\n%s\t%s\t%s\tN\t1000\t%s\n",$1,$2,$3,$9,$4,$5,$6,$10}' | gzip -nc > $output_ta_file &
+    
 done
+
 ```
 
 ## 5.Generate self-pseudoreplicates for each replicate (PE datasets)
+
 ```bash
+vim ch_pse.sh
+
 #!/bin/bash
 MAX_JOBS=4
 JOBS=0
@@ -169,29 +204,38 @@ JOBS=0
 # 主循环
 while read i; do
   (
-  # Step 1: Create fake BEDPE from tagAlign
-  zcat ./bed/${i}_FINAL_TA_FILE.bed | sed 'N;s/\n/\t/' > ./bed/${i}_temp.bedpe
+    #input
+    input_ta_file=./bed/${i}_FINAL_TA_FILE.bed
+    #output
+    temp_bedpe_file=./bed/${i}_temp.bedpe
+    filt_nodup_prefix=./bed/${i}.filt.nodup
+    pr1_tagalign_file=./bed/${i}.filt.PE2SE.pr1.tagAlign.gz
+    pr2_tagalign_file=./bed/${i}.filt.PE2SE.pr2.tagAlign.gz
 
-  # Step 2: Count read pairs
-  nlines=$(wc -l < ./bed/${i}_temp.bedpe)
-  nlines=$(( (nlines + 1) / 2 ))
+    # Step 1: Create fake BEDPE from tagAlign
+    zcat $input_ta_file | sed 'N;s/\n/\t/' > $temp_bedpe_file
 
-  # Step 3: Shuffle and split
-  shuf --random-source=<(openssl enc -aes-256-ctr -pass pass:$(zcat ./bed/${i}_FINAL_TA_FILE.bed | wc -c) -nosalt </dev/zero 2>/dev/null) ./bed/${i}_temp.bedpe \
-  | split -d -l ${nlines} - ./bed/${i}.filt.nodup
+    # Step 2: Count read pairs
+    nlines=$(wc -l < $temp_bedpe_file)
+    nlines=$(( (nlines + 1) / 2 ))
 
-  # Step 4: Convert to tagAlign format
-  awk 'BEGIN{OFS="\t"}{
-    printf "%s\t%s\t%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\t%s\t%s\n",
-    $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
-  }' ./bed/${i}.filt.nodup00 | gzip -nc > ./bed/${i}.filt.PE2SE.pr1.tagAlign.gz
+    # Step 3: Shuffle and split
+    shuf --random-source=<(openssl enc -aes-256-ctr -pass pass:$(zcat $input_ta_file | wc -c) -nosalt </dev/zero 2>/dev/null) $temp_bedpe_file \
+    | split -d -l ${nlines} - $filt_nodup_prefix
 
-  awk 'BEGIN{OFS="\t"}{
-    printf "%s\t%s\t%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\t%s\t%s\n",
-    $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
-  }' ./bed/${i}.filt.nodup01 | gzip -nc > ./bed/${i}.filt.PE2SE.pr2.tagAlign.gz
+    # Step 4: Convert to tagAlign format
+    awk 'BEGIN{OFS="\t"}{
+      printf "%s\t%s\t%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\t%s\t%s\n",
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+    }' ${filt_nodup_prefix}00 | gzip -nc > $pr1_tagalign_file
 
-  rm -f ./bed/${i}_temp.bedpe ./bed/${i}.filt.nodup00 ./bed/${i}.filt.nodup01
+    awk 'BEGIN{OFS="\t"}{
+      printf "%s\t%s\t%s\t%s\t%s\t%s\n%s\t%s\t%s\t%s\t%s\t%s\n",
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+    }' ${filt_nodup_prefix}01 | gzip -nc > $pr2_tagalign_file
+
+    # 清理临时文件
+    rm -f $temp_bedpe_file ${filt_nodup_prefix}00 ${filt_nodup_prefix}01
   ) &
 
   ((JOBS++))
