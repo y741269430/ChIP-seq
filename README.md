@@ -195,7 +195,7 @@ cat con_file | while read i;
 do
 nohup macs3 callpeak -f BAMPE \
 -t ./bam/${i}_FINAL.bam \
--c ./bam/E1_FINAL.bam ./bam/E2_FINAL.bam ./bam/E3_FINAL.bam\
+-c ./bam/E1_FINAL.bam ./bam/E2_FINAL.bam ./bam/E3_FINAL.bam \
 -g mm -n ./macs3/${i} -B -q 0.1 --broad-cutoff 0.1 & 
 done
 ```
@@ -208,7 +208,7 @@ do
 nohup macs3 callpeak -f BAMPE \
 -t ./bam/${i}_FINAL.bam \
 -c ./bam/E4_FINAL.bam ./bam/E6_FINAL.bam \
--g mm -n ./macs3/${i} -B -q 0.1 --broad-cutoff 0.1& 
+-g mm -n ./macs3/${i} -B -q 0.1 --broad-cutoff 0.1 & 
 done
 ```
 
