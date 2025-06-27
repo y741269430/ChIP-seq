@@ -10,8 +10,8 @@
 
 
 参考：    
-[Encode上的教程](https://docs.google.com/document/d/1lG_Rd7fnYgRpSIqrIfuVlAz2dW1VaSQThzk836Db99c/edit?tab=t.0#heading=h.9ecc41kilcvq)    
-[Encode Github](https://github.com/ENCODE-DCC/chip-seq-pipeline2/tree/master?tab=readme-ov-file)
+[Encode上的教程](https://docs.google.com/document/d/1lG_Rd7fnYgRpSIqrIfuVlAz2dW1VaSQThzk836Db99c/edit?tab=t.0#heading=h.9ecc41kilcvq)     
+[Encode Github](https://github.com/ENCODE-DCC/chip-seq-pipeline2/tree/master?tab=readme-ov-file)   
 [MACS3](https://macs3-project.github.io/MACS/)   
 
 ---
