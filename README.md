@@ -40,6 +40,9 @@ ILLUMINACLIP:TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLE
 
 done
 ```
+```bash
+bash pre_trim.sh
+```
 
 ## 2.Read alignment 双端比对到mm39
 ```bash
@@ -87,6 +90,10 @@ done < filenames
 
 wait
 ```
+```bash
+nohup bash ch1_bw2.sh &
+```
+
 导出比对率   
 ```bash
 cd logs
@@ -170,6 +177,9 @@ done < filenames
 wait
 
 ```
+```bash
+nohup bash ch2_sam2bam_rmdup.sh
+```
 
 ## 4. Convert PE BAM to tagAlign (BED 3+3 format)
 ```bash
@@ -191,7 +201,12 @@ do
 done
 
 ```
+```bash
+bash ch3_bam2bed.sh
+```
 
+## 以下内容暂时先不做   
+---
 ## 5.Generate self-pseudoreplicates for each replicate (PE datasets)
 
 ```bash
@@ -248,8 +263,6 @@ done < filenames
 wait
 ```
 
-
-
 ## 计算单端
 Trim R1 fastq to 50bp
 ```bash
@@ -294,14 +307,6 @@ done < filenames
 
 wait
 ```
-
-
-
-
-
-
-
-
 
 ## 安装phantompeakqualtools
 [phantompeakqualtools](https://github.com/kundajelab/phantompeakqualtools)
