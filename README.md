@@ -184,7 +184,34 @@ wait
 nohup bash ch2_sam2bam_rmdup.sh
 ```
 
-## 4. Convert PE BAM to tagAlign (BED 3+3 format)
+## 4. MACS3 call peak
+分别写脚本分开运行
+```bash
+#!/bin/bash
+## peak calling (macs3) ##
+
+cat con_file | while read i; 
+do
+nohup macs3 callpeak -f BAMPE \
+-t ./bam/${i}_FINAL.bam \
+-c ./bam/E1_FINAL.bam ./bam/E2_FINAL.bam ./bam/E3_FINAL.bam\
+-g mm -n ./macs3/${i} -B -q 0.1 --broad-cutoff 0.1 & 
+done
+```
+```bash
+#!/bin/bash
+## peak calling (macs3) ##
+
+cat conp_file | while read i; 
+do
+nohup macs3 callpeak -f BAMPE \
+-t ./bam/${i}_FINAL.bam \
+-c ./bam/E4_FINAL.bam ./bam/E6_FINAL.bam \
+-g mm -n ./macs3/${i} -B -q 0.1 --broad-cutoff 0.1& 
+done
+```
+
+## 5. Convert PE BAM to tagAlign (BED 3+3 format)
 ```bash
 vim ch3_bam2bed.sh
 ```
@@ -209,9 +236,11 @@ done
 bash ch3_bam2bed.sh
 ```
 
+
+
 ## 以下内容暂时先不做   
 ---
-## 5.Generate self-pseudoreplicates for each replicate (PE datasets)
+## 6.Generate self-pseudoreplicates for each replicate (PE datasets)
 
 ```bash
 vim ch_pse.sh
