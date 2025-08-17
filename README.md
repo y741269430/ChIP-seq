@@ -8,11 +8,22 @@
 - 4.MACS3 call peak
 - 5.Convert PE BAM to tagAlign (BED 3+3 format)
 
-
 参考：    
 [Encode上的教程](https://docs.google.com/document/d/1lG_Rd7fnYgRpSIqrIfuVlAz2dW1VaSQThzk836Db99c/edit?tab=t.0#heading=h.9ecc41kilcvq)     
 [Encode Github](https://github.com/ENCODE-DCC/chip-seq-pipeline2/tree/master?tab=readme-ov-file)   
-[MACS3](https://macs3-project.github.io/MACS/)   
+[MACS3](https://macs3-project.github.io/MACS/)     
+
+实验大概流程：   
+样本甲醛交联——细胞/组织破碎，提取细胞核——超声波打断DNA——用抗体富集目标蛋白（IP）——解交联，DNA提取——片段化，加接头——建库测序。  
+
+生信分析路线：
+- 1.当我们数据下机之后，得到的fastq文件，使用`fastp`软件对IgG（内参）和IP（目标蛋白）样本的原始数据，进行质控（这一步主要是去除接头、去除重复序列以及低质量序列）。得到clean data。
+- 2.将clean data使用`bowtie2`软件与基因组进行比对，得到的sam文件使用`samtools`转换成bam。
+- 3.得到的bam文件，获取其唯一比对以及去重复reads的结果后，使用`MACS2`或`MACS3`进行peak calling。
+- 4.同时将bam文件转换成bigwig文件，使用`IGV`进行可视化。
+- 5.使用r包`ChIPseeker`对peak进行注释。
+- 6.使用`homer`或`MEME`进行motif预测。
+- 7.使用`MAnorm`（无生物学重复）或`DiffBind`（有生物学重复）进行差异peak分析。   
 
 ---
 ## 0.配置环境
