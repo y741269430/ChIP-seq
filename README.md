@@ -21,11 +21,13 @@
 - 2.使用`fastp`软件对IgG（内参）和IP（目标蛋白）样本的原始数据，进行质控（这一步主要是去除3’端的接头污染、去除重复序列以及低质量序列（保留MPAQ >= 30））。得到clean data。（该软件能否去除重复序列存疑，我之前用的是`Trimmomatic`只有去接头和去除低质量序列的功能。）
 - 3.将clean data使用`bowtie2`软件与基因组进行比对，得到的sam文件使用`samtools`转换成bam。
 - 4.得到的bam文件，获取其唯一比对以及去重复reads的结果bam文件。
-- 5.使用`MACS2`或`MACS3`进行peak calling。
-- 6.同时将bam文件转换成bigwig文件，使用`IGV`进行可视化。
-- 7.使用r包`ChIPseeker`对peak进行注释。
-- 8.使用`homer`或`MEME`进行motif预测。
-- 9.使用`MAnorm`（无生物学重复）或`DiffBind`（有生物学重复）进行差异peak分析。   
+- 5.使用`Deeptools`绘制TSS, Peak center 或GeneBody富集热图（依组学而定），展示数据在这些区域及前后3kb上的富集情况。
+- 6.使用`MACS2`或`MACS3`进行peak calling。
+- 7.使用`IDR`软件进行样品间高可信度的峰筛选.
+- 8.将bam文件转换成bigwig文件，使用`IGV`进行可视化。
+- 9.使用r包`ChIPseeker`对peak进行注释。
+- 10.使用`homer`或`MEME`进行motif预测。
+- 11.使用`MAnorm`（无生物学重复）或`DiffBind`（有生物学重复）进行差异peak分析.
 
 ---
 ## 0.配置环境
