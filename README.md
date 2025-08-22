@@ -193,30 +193,13 @@ nohup bash ch2_sam2bam_rmdup.sh
 ```
 
 ## 4. MACS3 call peak
-分别写脚本分开运行
+同一份样本，IP减去input
 ```bash
-#!/bin/bash
-## peak calling (macs3) ##
-
-cat con_file | while read i; 
-do
 nohup macs3 callpeak -f BAMPE \
--t ./bam/${i}_FINAL.bam \
--c ./bam/E1_FINAL.bam ./bam/E2_FINAL.bam ./bam/E3_FINAL.bam \
--g mm -n ./macs3/${i} -B -q 0.1 --broad-cutoff 0.1 & 
-done
-```
-```bash
-#!/bin/bash
-## peak calling (macs3) ##
+-t ./bam/D1_FINAL.bam \
+-c ./bam/E1_FINAL.bam \
+-g mm -n ./macs3/D1_E1 -B -q 0.1 --broad-cutoff 0.1 & 
 
-cat conp_file | while read i; 
-do
-nohup macs3 callpeak -f BAMPE \
--t ./bam/${i}_FINAL.bam \
--c ./bam/E4_FINAL.bam ./bam/E6_FINAL.bam \
--g mm -n ./macs3/${i} -B -q 0.1 --broad-cutoff 0.1 & 
-done
 ```
 
 ## 5. Convert PE BAM to tagAlign (BED 3+3 format)
