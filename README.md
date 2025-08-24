@@ -80,10 +80,10 @@ while read i; do
   flagstat_qc=./logs/${i}.flagstat.qc
 
   # Step 1: 比对 + 转 BAM + 排序
-  bowtie2 -X2000 --mm --threads $nth_bwt2 -x $bwt2_idx \
+  # -X 设定最长的插入片段长度. Default: 500
+  bowtie2 -X 2000 --mm --threads $nth_bwt2 -x $bwt2_idx \
     -1 $fastq1 -2 $fastq2 2> $log_file | \
     samtools view -Su - | samtools sort -o $bam_file -
-
   # Step 2: flagstat 样本质控
   samtools sort -n --threads $nth_bwt2 $bam_file -O SAM | \
     SAMstats --sorted_sam_file - --outf $flagstat_qc
