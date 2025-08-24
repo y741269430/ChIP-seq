@@ -226,6 +226,7 @@ done
 # samtools flagstat -@ 10 ./bam/${i}.bam > ./logs/${i}.bam.stat &
 # samtools flagstat -@ 10 ./bam/${i}.rmdup.bam > ./logs/${i}.rmdup.stat &
 ```
+`fixmate`专门用于修复双端测序中配对读段的信息。
 
 ## 4. MACS3 call peak
 同一份样本，IP减去input
