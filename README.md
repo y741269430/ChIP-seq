@@ -103,6 +103,21 @@ wait
 ```bash
 nohup bash ch1_bw2.sh &
 ```
+方法二：
+```bash
+#!/bin/bash
+
+mm39="/home/jjyang/downloads/genome/mm39_GRCm39/bowtie2_idx/mm39"
+
+cat filenames | while read i; 
+do
+nohup bowtie2 -p 4 --very-sensitive -X 1000 \
+-x ${mm39} \
+-1 trim/${i}_forward_paired.fq.gz \
+-2 trim/${i}_reverse_paired.fq.gz \
+-S ./bam/${i}.sam 2> ./logs/${i}_map.txt & 
+done
+```
 
 导出比对率   
 ```bash
@@ -190,6 +205,26 @@ wait
 ```
 ```bash
 nohup bash ch2_sam2bam_rmdup.sh
+```
+方法二：
+```bash
+#!/bin/bash
+## sam to bam (samtools) ##
+## sorted by name and position (samtools) ##
+## repair bam ##
+## remove duplication (sambamba) ##
+
+cat filenames | while read i; 
+do
+nohup samtools view -Sb bam/${i}.sam -o bam/${i}.bam -@ 4 -O bam &&
+samtools sort -n bam/${i}.bam -m 768M -@ 4 -o bam/${i}.namesrt.bam &&
+samtools fixmate -@ 4 -r bam/${i}.namesrt.bam bam/${i}.fixmate.bam &&
+samtools sort bam/${i}.fixmate.bam -m 768M -@ 4 -o bam/${i}.sort.bam &&
+sambamba markdup -t 6 -r --tmpdir tmp --overflow-list-size 600000 bam/${i}.sort.bam bam/${i}.rmdup.bam &
+done
+
+# samtools flagstat -@ 10 ./bam/${i}.bam > ./logs/${i}.bam.stat &
+# samtools flagstat -@ 10 ./bam/${i}.rmdup.bam > ./logs/${i}.rmdup.stat &
 ```
 
 ## 4. MACS3 call peak
