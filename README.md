@@ -105,6 +105,9 @@ nohup bash ch1_bw2.sh &
 ```
 方法二：
 ```bash
+vim yy1_bw2.sh
+```
+```bash
 #!/bin/bash
 
 mm39="/home/jjyang/downloads/genome/mm39_GRCm39/bowtie2_idx/mm39"
@@ -118,7 +121,9 @@ nohup bowtie2 -p 4 --very-sensitive -X 1000 \
 -S ./bam/${i}.sam 2> ./logs/${i}_map.txt & 
 done
 ```
-
+```bash
+nohup bash yy1_bw2.sh &
+```
 导出比对率   
 ```bash
 cd logs
@@ -204,9 +209,12 @@ wait
 
 ```
 ```bash
-nohup bash ch2_sam2bam_rmdup.sh
+nohup bash ch2_sam2bam_rmdup.sh &
 ```
 方法二：
+```bash
+vim yy2_sam2lastbam.sh
+```
 ```bash
 #!/bin/bash
 ## sam to bam (samtools) ##
@@ -225,6 +233,9 @@ done
 
 # samtools flagstat -@ 10 ./bam/${i}.bam > ./logs/${i}.bam.stat &
 # samtools flagstat -@ 10 ./bam/${i}.rmdup.bam > ./logs/${i}.rmdup.stat &
+```
+```bash
+nohup bash yy2_sam2lastbam.sh &
 ```
 `fixmate`专门用于修复双端测序中配对读段的信息。
 
